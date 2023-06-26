@@ -1,0 +1,19 @@
+---
+- name: LOADROUTERS=>> Query Routers
+  uri:
+    url: 'https://{{north_ip}}:{{north_port}}/controller/dc/v3/logicnetwork/routers'
+    method: GET
+    validate_certs: False
+    return_content: yes
+    headers:
+      X-ACCESS-TOKEN: "{{token_id}}"
+      Accept: application/json
+      Content_Type: application/json
+    status_code: 200
+  register: logicrouters_result
+  ignore_errors: yes
+
+- name: LOADROUTERS=>> Convert JSON to Dict
+  set_fact:
+    routers_name: "{{ logicrouters_result.json.router|items2dict(key_name='name', value_name='id') }}"
+    routers_id: "{{ logicrouters_result.json.router|items2dict(key_name='id', value_name='name') }}"

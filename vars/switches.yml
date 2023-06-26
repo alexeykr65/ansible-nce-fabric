@@ -1,0 +1,17 @@
+---
+switches:
+  - switchName: sw_testv31
+    switchDesc: create test 1 from ansible
+    networkName: TEST-VPC
+    routerName: test-vpc-r
+
+  - switchName: sw_testv32
+    switchDesc: create test 2 from ansible
+    networkName: TEST-VPC
+    routerName: test-vpc-r
+
+  - switchName: sw_testv33
+    switchDesc: create test 3 from ansible
+    networkName: TEST-VPC
+    routerName: test-vpc-r
+

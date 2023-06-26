@@ -1,0 +1,20 @@
+---
+- name: LOADNETWORKS=>> Query LogicNetworks
+  uri:
+    url: 'https://{{north_ip}}:{{north_port}}/controller/dc/v3/logicnetwork/networks'
+    method: GET
+    validate_certs: False
+    return_content: yes
+    headers:
+      X-ACCESS-TOKEN: "{{token_id}}"
+      Accept: application/json
+      Content_Type: application/json
+    status_code: 200
+  register: logs_result
+  ignore_errors: yes
+
+- name: LOADNETWORKS=>> Convert JSON to Dict
+  set_fact:
+    nets_name: "{{ logs_result.json.network|items2dict(key_name='name', value_name='id') }}"
+    nets_id: "{{ logs_result.json.network|items2dict(key_name='id', value_name='name') }}"
+

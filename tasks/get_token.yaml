@@ -1,0 +1,36 @@
+---
+- pause:
+    prompt: "Input your slapos token (ignore if you already have a configured slapos) [notoken]"
+  when:  userPass == "" 
+  register: prompt
+
+- set_fact:
+    userPass: "{{ prompt.user_input }}"
+  when: prompt.user_input is defined
+
+- name: GETTOKEN=>> Get New Access Token
+  vars:
+    auth_user:
+      userName: '{{userName}}'
+      password: '{{userPass}}'
+  uri:
+    url: 'https://{{north_ip}}:{{north_port}}/controller/v2/tokens'
+    method: POST
+    body: '{{auth_user}}'
+    body_format: json
+    validate_certs: False
+    return_content: yes
+    headers:
+      Accept: application/json
+    status_code: 200
+  register: token_result
+
+- name: GETTOKEN=>> Save New Token to File 'ansible-token'
+  ansible.builtin.copy:
+    content: '{{token_result.json.data.token_id}}'
+    dest: "ansible-token"
+
+- name: GETTOKEN=>> Save ExpireDate to file
+  ansible.builtin.copy:
+    content: '{{token_result.json.data.expiredDate}}'
+    dest: "ansible-token-date"

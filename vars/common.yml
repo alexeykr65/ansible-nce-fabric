@@ -1,0 +1,6 @@
+---
+userName: "username_need"
+north_ip: "ip_address_need"
+north_port: "18002"
+token_id: "{{lookup('file','ansible-token')}}"
+userPass: "{{ lookup('ansible.builtin.env', 'PASSW', default='') }}"

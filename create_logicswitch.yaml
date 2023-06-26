@@ -1,0 +1,86 @@
+- name: Create LogicSwitch
+  hosts: localhost
+  gather_facts: yes
+  vars_files:
+    - "vars/common.yml"
+    - "vars/switches.yml"
+  vars:
+    now_time: "{{ansible_date_time.date}} {{ansible_date_time.time}}"
+
+  tasks:
+    - name: LOGICSWITCH=>> Check Access Token
+      ansible.builtin.include_tasks:
+        file: "tasks/check_token.yaml"
+
+    - name: LOGICSWITCH=>> Get New Access Token
+      ansible.builtin.include_tasks:
+        file: "tasks/get_token.yaml"
+      when: check_token_result.status == 401
+
+    - name: LOGICSWITCH=>> Load Info about Routers
+      ansible.builtin.include_tasks:
+        file: "tasks/get_routers_ids.yaml"
+
+    - name: LOGICSWITCH=>> Load Info about Networks
+      ansible.builtin.include_tasks:
+        file: "tasks/get_nets_ids.yaml"
+
+    - name: LOGICSWITCH=>> Prepare Data of Switches
+      set_fact: 
+          list_switches: "{{ list_switches | default([]) + [{'switch': [{ 'id' : (item.switchName + item.switchDesc)|to_uuid, 'name' : item.switchName, 'description' : item.switchDesc, 'logicNetworkId' : nets_name[item.networkName], 'additional' : {'producer' : 'default', 'createAt' : now_time } }]} ] }}"
+      loop: "{{ switches }}"
+
+    - name: LOGICSWITCH=>> Create Logic Switches
+      uri:
+        url: 'https://{{north_ip}}:{{north_port}}/controller/dc/v3/logicnetwork/switchs'
+        method: POST
+        body: "{{ item }}"
+        body_format: json
+        validate_certs: False
+        return_content: yes
+        headers:
+          X-ACCESS-TOKEN: "{{ token_id }}"
+          Accept: application/json
+          Content_Type: application/json
+        status_code: 204
+      loop: "{{ list_switches }}"
+      register: logicswitch_result
+    
+    - name: LOGICSWITCH=>> Response from NCE Fabric
+      debug:
+        msg: "STATUS_CODE: {{item.status}}"
+      loop: "{{ logicswitch_result.results }}"
+      loop_control: 
+        label: "{{ item.msg}}"
+
+    - name: LOGICSWITCH=>> Load Info about Switches
+      ansible.builtin.include_tasks:
+        file: "tasks/get_swtitches_ids.yaml"
+
+    - name: LOGICSWITCH=>> Prepare Data of Links
+      set_fact: 
+          list_links: "{{ list_links | default([]) + [{'link': [{ 'logicSwitchId' : switches_name[item.switchName], 'logicRouterId' : routers_name[item.routerName], 'logicNetworkId' : nets_name[item.networkName], 'additional' : {'producer' : 'default', 'createAt' : now_time } }]} ] }}"
+      loop: "{{ switches }}"
+
+    - name: LOGICSWITCH=>> Create Link between Switch and Router
+      uri:
+        url: 'https://{{north_ip}}:{{north_port}}/controller/dc/v3/logicnetwork/links'
+        method: POST
+        body: '{{ item }}'
+        body_format: json
+        validate_certs: False
+        return_content: yes
+        headers:
+          X-ACCESS-TOKEN: "{{token_id}}"
+          Accept: application/json
+          Content_Type: application/json
+        status_code: 204
+      loop: "{{ list_links }}"
+      register: logic_link_result
+
+    - name: LOGICSWITCH=>> Response from NCE Fabric
+      debug:
+        msg: "STATUS_CODE: {{item.status}}"
+      loop: "{{ logic_link_result.results }}"
+      loop_control: 
+        label: "{{ item.msg}}"
